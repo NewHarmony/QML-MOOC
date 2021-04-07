@@ -6,11 +6,21 @@ import shutil
 import socket
 import subprocess
 import time
-from pyquil.api import ForestConnection
+import sys
+import pyquil
+import qutip
+from pyquil.api import ForestConnection, QVMConnection
 from pyquil.latex import to_latex
 from qutip import Bloch
 from tempfile import mkdtemp
 
+class server():
+    def __init__(self, port):
+        self.port = port
+        self.status = 'dummy' 
+    
+    def terminate(self):
+        return 'True'
 
 def get_free_port():
     sock = socket.socket()
@@ -19,16 +29,15 @@ def get_free_port():
     sock.close()
     return port
 
-
-def init_qvm_and_quilc(qvm_executable="qvm", quilc_executable="quilc"):
-    qvm_port = get_free_port()
-    quilc_port = get_free_port()
-    qvm_server = subprocess.Popen([qvm_executable, "-S", "-p", str(qvm_port)])
-    quilc_server = subprocess.Popen([quilc_executable, "-R", "-p", str(quilc_port)])
-    fc = ForestConnection(sync_endpoint='http://127.0.0.1:' + str(qvm_port),
-                          compiler_endpoint='tcp://127.0.0.1:' + str(quilc_port))
-    time.sleep(5)
-    return qvm_server, quilc_server, fc
+#def init_qvm_and_quilc(qvm_executable="qvm", quilc_executable="quilc"):
+#    print(" getting ports")
+#    qvm_port = get_free_port()
+#    quilc_port = get_free_port()
+#    qvm_server = subprocess.Popen([qvm_executable, "-S", "-p", str(qvm_port)])
+#    quilc_server = subprocess.Popen([quilc_executable, "-R", "-p", str(quilc_port)])
+#    fc = ForestConnection(sync_endpoint='http://127.0.0.1:' + str(qvm_port), 
+#                          compiler_endpoint='tcp://127.0.0.1:' + str(quilc_port))
+#    return qvm_server, quilc_server, fc
 
 
 def plot_circuit(circuit):
@@ -99,11 +108,16 @@ def plot_quantum_state(amplitudes):
     bloch_sphere.clear()
 
 
-def plot_histogram(result):
-    if isinstance(result, dict):
-        outcomes = np.flip(np.vstack(result.values()).T)
+def plot_histogram(results):
+#
+# fixed Numpy warning. vstack can only be used on ordered lists, no longer on dictionaries
+#
+    if isinstance(results, dict):
+        tmp=[]
+        tmp.append([results[i] for i in range(len(results))])
+        outcomes = np.flip(np.vstack(tmp).T)
     else:
-        outcomes = result
+        outcomes = results
     trials, classical_bits = outcomes.shape
     stats = {}
     for bits in itertools.product('01', repeat=classical_bits):
