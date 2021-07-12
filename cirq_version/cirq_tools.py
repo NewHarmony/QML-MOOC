@@ -17,8 +17,11 @@ def plot_circuit(circuit):
     doc.append(NoEscape(tex))
     tmp_folder = mkdtemp()
     doc.generate_tex(tmp_folder + '/circuit')
-    proc = subprocess.Popen(['pdflatex', '-shell-escape', tmp_folder + '/circuit.tex'], cwd=tmp_folder)
+    convert_log = open(tmp_folder+'/pdflatex.log', 'w')
+    proc = subprocess.Popen(['pdflatex', '-shell-escape', tmp_folder + '/circuit.tex'], cwd=tmp_folder, 
+           stdout = convert_log, stderr = convert_log)
     proc.communicate()
+    convert_log.close()    
     image = plt.imread(tmp_folder + '/circuit.png')
     shutil.rmtree(tmp_folder)
     plt.axis('off')
